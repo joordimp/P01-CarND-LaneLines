@@ -1,0 +1,162 @@
+// PIPELINE & FIRST TESTS
+
+def lines_pipeline(img, params):
+    canny_low_threshold = params['canny_low_threshold']
+    canny_high_threshold = params['canny_high_threshold']
+    gaussian_kernel_size = params['gaussian_kernel_size']
+    roi_vertices = params['roi_vertices']
+    hough_rho = params['hough_rho']
+    hough_theta = params['hough_theta']
+    hough_threshold = params['hough_threshold']
+    hough_min_line_len = params['hough_min_line_len']
+    hough_max_line_gap = params['hough_max_line_gap']
+
+    img_gray = grayscale(img)
+    img_blurred = gaussian_blur(img_gray, gaussian_kernel_size)
+    img_canny = canny(img_blurred, canny_low_threshold, canny_high_threshold)
+    img_masked = region_of_interest(img_canny, roi_vertices)
+    img_lines = hough_lines(img_masked, hough_rho, hough_theta, hough_threshold, hough_min_line_len, hough_max_line_gap)
+    img_weighted = weighted_img(img_lines, img, α=0.8, β=2., γ=0.)
+
+    return img_weighted
+
+
+imgshape = image.shape
+roi_top = 340
+params = {
+    "canny_low_threshold": 50,
+    "canny_high_threshold": 150,
+    "gaussian_kernel_size": 5,
+    "roi_vertices": np.array([[(100,imgshape[0]), (400,roi_top), (600,roi_top), (900, imgshape[0])]], dtype=np.int32), # vertices of mask
+    "roi_top": roi_top,
+    "hough_rho": 4,
+    "hough_theta": np.pi/180,
+    "hough_threshold": 25, # min intersections in Hough grid cell
+    "hough_min_line_len": 40, # min pixels of a line
+    "hough_max_line_gap": 20 # max pixels for gap within line
+}
+
+
+processed_img = lines_pipeline(image, params)
+plt.imshow(processed_img)
+
+
+// DISTINGUISH BETWEEN RIGTH AND LEFT LINES
+
+def draw_lines(img, lines, color=[255, 0, 0], thickness=2):
+    m_threshold = 0.5
+    for line in lines:
+        for x1,y1,x2,y2 in line:
+            slope = ((y2-y1)/(x2-x1))
+            line_color = color
+            if slope<(-1*m_threshold):
+                line_color = [0, 0, 255]
+            elif slope>m_threshold:
+                line_color = [0, 255, 0]
+            cv2.line(img, (x1, y1), (x2, y2), line_color, thickness)
+
+
+// Extrapolation
+
+def draw_lines(img, lines, y_bottom, y_top, color=[255, 0, 0], thickness=2, draw_simple = True, draw_extrapolation = True):
+    """
+    NOTE: this is the function you might want to use as a starting point once you want to
+    average/extrapolate the line segments you detect to map out the full
+    extent of the lane (going from the result shown in raw-lines-example.mp4
+    to that shown in P1_example.mp4).
+
+    Think about things like separating line segments by their
+    slope ((y2-y1)/(x2-x1)) to decide which segments are part of the left
+    line vs. the right line.  Then, you can average the position of each of
+    the lines and extrapolate to the top and bottom of the lane.
+
+    This function draws `lines` with `color` and `thickness`.
+    Lines are drawn on the image inplace (mutates the image).
+    If you want to make the lines semi-transparent, think about combining
+    this function with the weighted_img() function below
+    """
+
+    left_lines = []
+    right_lines = []
+    m_threshold = 0.5
+
+    for line in lines:
+        for x1,y1,x2,y2 in line:
+            slope = ((y2-y1)/(x2-x1))
+            line_color = color
+            if slope<(-1*m_threshold): # Is a left line (visual slope in image is positive)
+                left_lines.append([x1,y1])
+                left_lines.append([x2,y2])
+                line_color = [0, 0, 255]
+            elif slope>m_threshold: # Is a right line (visual slope in image is negative)
+                right_lines.append([x1,y1])
+                right_lines.append([x2,y2])
+                line_color = [0, 255, 0]
+            if draw_simple:
+                cv2.line(img, (x1, y1), (x2, y2), line_color, thickness)
+
+    if len(left_lines)>0 and draw_extrapolation:
+        x_bottom, x_top = extrapolate_lines(left_lines, y_bottom, y_top)
+        if ((y_top-y_bottom)/(x_top-x_bottom))<(-1*m_threshold):
+            cv2.line(img, (x_bottom, y_bottom), (x_top, y_top), color, thickness*4)
+
+    if len(right_lines)>0 and draw_extrapolation:
+        x_bottom, x_top = extrapolate_lines(right_lines, y_bottom, y_top)
+        if ((y_top-y_bottom)/(x_top-x_bottom))>m_threshold:
+            cv2.line(img, (x_bottom, y_bottom), (x_top, y_top), color, thickness*4)
+
+
+def extrapolate_lines(lines, y_bottom, y_top):
+    np_lines = np.array(lines)
+    m, b = np.polyfit(np_lines[:,0],np_lines[:,1], 1)
+    x_bottom = int((y_bottom-b)/m)
+    x_top = int((y_top-b)/m)
+    return x_bottom, x_top
+
+def lines_pipeline(img, params):
+    canny_low_threshold = params['canny_low_threshold']
+    canny_high_threshold = params['canny_high_threshold']
+    gaussian_kernel_size = params['gaussian_kernel_size']
+    roi_vertices = params['roi_vertices']
+    hough_rho = params['hough_rho']
+    hough_theta = params['hough_theta']
+    hough_threshold = params['hough_threshold']
+    hough_min_line_len = params['hough_min_line_len']
+    hough_max_line_gap = params['hough_max_line_gap']
+
+    img_gray = grayscale(img)
+    img_blurred = gaussian_blur(img_gray, gaussian_kernel_size)
+    img_canny = canny(img_blurred, canny_low_threshold, canny_high_threshold)
+    img_masked = region_of_interest(img_canny, roi_vertices)
+    img_lines = hough_lines(img_masked, hough_rho, hough_theta, hough_threshold, hough_min_line_len, hough_max_line_gap,
+                           y_bottom=np.max(roi_vertices[:,:,1]), y_top = np.min(roi_vertices[:,:,1]))
+    img_weighted = weighted_img(img_lines, img, α=0.8, β=2., γ=0.)
+
+    return img_weighted
+
+
+def process_image_challenge(image):
+    # NOTE: The output you return should be a color image (3 channel) for processing video below
+    # TODO: put your pipeline here,
+    # you should return the final output (image where lines are drawn on lanes)
+
+    imgshape = image.shape
+    params = {
+        "canny_low_threshold": 50,
+        "canny_high_threshold": 150,
+        "gaussian_kernel_size": 5,
+        "roi_vertices": np.array([[(int(imgshape[1]*0.25), int(imgshape[0]*1.)),
+                                   (int(imgshape[1]*0.4), int(imgshape[0]*0.65)),
+                                   (int(imgshape[1]*0.6), int(imgshape[0]*0.65)),
+                                   (int(imgshape[1]*0.8), int(imgshape[0]*1.))]], dtype=np.int32), # vertices of mask
+        "roi_top": roi_top,
+        "hough_rho": 4,
+        "hough_theta": np.pi/180,
+        "hough_threshold": 25, # min intersections in Hough grid cell
+        "hough_min_line_len": 40, # min pixels of a line
+        "hough_max_line_gap": 30 # max pixels for gap within line
+    }
+
+    result = lines_pipeline(image, params)
+
+    return result
