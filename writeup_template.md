@@ -337,7 +337,7 @@ def process_image_challenge(image):
 The results obtained with these parameters and our previous `draw_lines` function look very promising. We have been able to detect lines perfectly for most time of the video, except for one moment in the left line just after the car exited the first tree, where the roads changes.
 
 <video width="960" height="540" controls>
-  <source src="img_results/challenge.mp4" type="video/mp4">
+  <source src="./img_results/challenge.mp4" type="video/mp4">
 </video>
 
 
