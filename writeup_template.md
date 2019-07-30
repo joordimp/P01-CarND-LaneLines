@@ -299,10 +299,20 @@ As said, we found that the resulting output of applying the pipeline in the test
 
 #### Results obtained in testing videos
 
-// TODO
+We applied this functions to the test videos provided within the project, following the notebook's guide.
+
+The results obtained are very promising, showing to be very close to the reality.
+
+Here it is the output for the "White right line" video:
+
+[!["White right line" Output](https://img.youtube.com/vi/UDJUAg03tr0/0.jpg)](https://www.youtube.com/watch?v=UDJUAg03tr0)
+
+And here it is the result for the "Yellow left line" one:
+
+[!["Yellow left line"](https://img.youtube.com/vi/q4WXUtJeQnM/0.jpg)](https://www.youtube.com/watch?v=q4WXUtJeQnM)
 
 
-#### Results obtained in the *Optional Chanllenge*.
+#### Results obtained in the *Optional Challenge*.
 
 Finally, we have been able to apply this function (and pipeline) to the *Optional Challenge*.
 
@@ -336,9 +346,7 @@ def process_image_challenge(image):
 
 The results obtained with these parameters and our previous `draw_lines` function look very promising. We have been able to detect lines perfectly for most time of the video, except for one moment in the left line just after the car exited the first tree, where the roads changes.
 
-<video width="960" height="540" controls>
-  <source src="./img_results/challenge.mp4" type="video/mp4">
-</video>
+[![Optional Challenge Output](https://img.youtube.com/vi/0WG7N5biqmE/0.jpg)](https://www.youtube.com/watch?v=0WG7N5biqmE)
 
 
 
